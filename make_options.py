@@ -5,7 +5,9 @@ class MakeOptions:
         self.project_name = "my_project"
         self.c_compiler = "gcc"
         self.cpp_compiler = "g++"
+        self.as_compiler = "as"
         self.sources = []
+        self.root_dir = None
         self.output = None
         self.link_libraries = []
         self.defines = []
