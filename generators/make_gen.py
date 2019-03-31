@@ -114,6 +114,9 @@ class MakeGen:
             if object_files:
                 output_file.write("\trm -f %s\n" % (options.output))
 
+            output_file.write("\n\n")
+            output_file.write(options.custom_section)
+
     def __linker_flags(self, options):
         flags = []
         for lib in options.link_libraries:

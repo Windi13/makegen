@@ -10,5 +10,4 @@ def calc_hash(sources):
         m.update(s.encode('utf-8'))
         k += s
         
-    print(k)
     return m.hexdigest()

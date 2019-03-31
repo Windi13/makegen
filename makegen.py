@@ -90,6 +90,26 @@ def load_files_from_path(path):
     include_paths = set(header_include_paths)
     return sources, include_paths
 
+def read_custom_section_from_makefile(options):
+    custom_section_header = "################################################################\n\
+######   You can put customized rules below this comment  ######\n\
+###### It will not be deleted if you rebuild the Makefile ######\n\
+################################################################"
+
+    if os.path.isfile("Makefile"):
+        # makefile exists
+        with open("Makefile", "r") as mkfile:
+            content = mkfile.read()
+            index = content.find(custom_section_header)
+            
+            if index == -1:
+                options.custom_section = custom_section_header + "\n\n\n\n"
+            else:
+                options.custom_section = content[index:]
+    else:
+        # makefile doesn't exist
+        options.custom_section = custom_section_header + "\n\n\n\n"
+
 def check_for_makegen_file(arg, options):
     if not os.path.isfile('makegen.json'):
         print('No makegen.json found')
@@ -143,6 +163,8 @@ if __name__ == "__main__":
     check_for_makegen_file(arg, options)
 
     options.hash = calc_hash(options.sources)
+
+    read_custom_section_from_makefile(options)
 
     if not options.root_dir and not options.sources:
         print("error: specify files on the command line or supply them with \"ROOT_DIR\" in the makegen.json file")
