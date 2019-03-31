@@ -12,6 +12,7 @@ from generators import list_generators
 from generators import GENERATORS
 from rule_generator import RULE_GENERATORS
 from rule_generator import get_header_rule_generator
+from hash import calc_hash
 
 def build_argument_parser():
     parser = argparse.ArgumentParser(
@@ -77,7 +78,10 @@ def load_files_from_path(path):
         for f in files:
             filename, ext = os.path.splitext(f)
             if ext[1:] in extensions:
-                sources.append(root+"/"+f)
+                if (root.startswith("./")):
+                    sources.append(root[2:]+"/"+f)
+                else:
+                    sources.append(root+"/"+f)
                 
                 if ext[1:] in header_ext:
                     header_include_paths.append(root)
@@ -138,7 +142,7 @@ if __name__ == "__main__":
 
     check_for_makegen_file(arg, options)
 
-    print(vars(options))
+    options.hash = calc_hash(options.sources)
 
     if not options.root_dir and not options.sources:
         print("error: specify files on the command line or supply them with \"ROOT_DIR\" in the makegen.json file")

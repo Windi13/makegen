@@ -66,13 +66,33 @@ class MakeGen:
                 output_file.write("LDFLAGS=%(LDFLAGS)s %(FLAGS)s\n"
                                   % {"FLAGS": self.__linker_flags(options),
                                      "LDFLAGS": options.ldflags})
-            output_file.write("\n")
+            output_file.write("\n\n")
+                
+            # check if something changed since last time makegen was run
+            output_file.write("HASH := %s\n\n" % (options.hash))
+            name_string = ""
 
+            for gen in RULE_GENERATORS:
+                for ext in gen.handled_extensions():
+                    if name_string == "":
+                        name_string += "-name \"*.%s\" " % ext
+                    else:
+                        name_string += "-o -name \"*.%s\" " % ext       
+
+            output_file.write("HASH_SRCS := $(shell find \"%1s\" -type f %2s | sed 's|^./||' | tr -d '[:space:]')\n" % (options.root_dir, name_string))
+            output_file.write("COMP_HASH := $(shell echo -n \"$(HASH_SRCS)\" | md5sum | cut -d' ' -f1)\n\n")
+
+            output_file.write("\n\n")
+            
             # all
             if object_files:
-                output_file.write("all: %1s\n\n" % options.output)
+                output_file.write("all: %1s\n" % options.output)
             else:
-                output_file.write("all:\n\n")
+                output_file.write("all:\n")
+
+            output_file.write("ifneq ($(HASH), $(COMP_HASH))\n")
+            output_file.write("\t$(shell makegen -f make \"%s\")\n" % (options.root_dir))
+            output_file.write("endif\n\n")
 
             # executable
             if object_files:
