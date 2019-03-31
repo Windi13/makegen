@@ -40,23 +40,33 @@ class DependencyFinder:
 
     # ------ single file ------
 
-    def find_dependency(self, filename):
+    def find_dependency(self, filename, sources):
         dep_set = set()
         try:
-            self.__find_dependency(filename, dep_set)
+            self.__find_dependency(filename, dep_set, sources)
         except IOError:
             print("error: failed to open file: %s" % filename)
         return [filename] + list(dep_set)
 
-    def __find_dependency(self, filename, dep_set):
+    def __find_dependency(self, filename, dep_set, sources):
         with open(filename, "r") as input_file:
             for line in input_file:
-                self.__process_line(os.path.dirname(filename), line, dep_set)
+                self.__process_line(os.path.dirname(filename), line, dep_set, sources)
 
-    def __process_line(self, directory, line, dep_set):
+    def __process_line(self, directory, line, dep_set, sources):
         dependent_file = self.__extract_include_file(line)
+        found = False
         if dependent_file:
-            dependent_file = os.path.join(directory, dependent_file)
+            for s in sources:
+                if s.endswith(dependent_file):
+                    dependent_file = s
+                    found = True
+                    break
+
+            if not found:
+                print("Error: couldn't locate file \"%s\"" % (dependent_file))
+                exit(1)
+
         if dependent_file != None and dependent_file not in dep_set:
             dep_set.add(dependent_file)
             try:

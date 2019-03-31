@@ -11,6 +11,7 @@ from make_options import MakeOptions
 from generators import list_generators
 from generators import GENERATORS
 from rule_generator import RULE_GENERATORS
+from rule_generator import get_header_rule_generator
 
 def build_argument_parser():
     parser = argparse.ArgumentParser(
@@ -65,6 +66,9 @@ def build_make_options(arg):
 def load_files_from_path(path):
     extensions = []
     sources = []
+    header_include_paths = []
+    header_ext = get_header_rule_generator().handled_extensions()
+
     for gen in RULE_GENERATORS:
         for ext in gen.handled_extensions():
             extensions.append(ext)
@@ -73,9 +77,14 @@ def load_files_from_path(path):
         for f in files:
             filename, ext = os.path.splitext(f)
             if ext[1:] in extensions:
-                sources.append(f)
+                sources.append(root+"/"+f)
+                
+                if ext[1:] in header_ext:
+                    header_include_paths.append(root)
 
-    return sources
+
+    include_paths = set(header_include_paths)
+    return sources, include_paths
 
 def check_for_makegen_file(arg, options):
     if not os.path.isfile('makegen.json'):
@@ -112,11 +121,14 @@ def check_for_makegen_file(arg, options):
             options.defines = data["DEFINES"]
         if "ROOT_DIR" in data:
             options.root_dir = data["ROOT_DIR"]
-            options.sources = load_files_from_path(options.root_dir)
+            options.sources, inc_paths = load_files_from_path(options.root_dir)
+            options.include_paths += inc_paths
         if "PROJECT_NAME" in data:
             options.project_name = data["PROJECT_NAME"]
         if "OUTPUT" in data:
             options.output = data["OUTPUT"]
+        if "OBJDIR" in data:
+            options.objdir = data["OBJDIR"]
 
 if __name__ == "__main__":
     parser = build_argument_parser()

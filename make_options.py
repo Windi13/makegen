@@ -9,10 +9,12 @@ class MakeOptions:
         self.sources = []
         self.root_dir = None
         self.output = None
+        self.objdir = ""
         self.link_libraries = []
         self.defines = []
         self.library_paths = []
         self.include_paths = []
         self.cflags = "-g -O2 -Wall"
         self.cxxflags = "-g -O2 -Wall"
+        self.asflags = ""
         self.ldflags = ""

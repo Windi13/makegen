@@ -8,6 +8,7 @@ from rule_generator import RULE_GENERATORS
 from rule_generator import get_c_rule_generator
 from rule_generator import get_cpp_rule_generator
 from rule_generator import get_header_rule_generator
+from rule_generator import get_as_rule_generator
 
 class MakeGen:
 
@@ -20,18 +21,27 @@ class MakeGen:
     def generate(self, options):
         c_compiler = None
         cpp_compiler = None
+        as_compiler = None
         object_files = []
         link_libraries = options.link_libraries
         compiler_flags = self.__compiler_flags(options)
 
         for f in options.sources:
-            base, ext = self.__split_extension(f)
+            filename, ext = self.__split_extension(f)
+            base = os.path.basename(filename)
+
+            base = os.path.join(options.objdir, base+".o")
+
             if ext in get_c_rule_generator().handled_extensions():
                 c_compiler = options.c_compiler
-                object_files.append(base + ".o")
+                object_files.append(base)
             elif ext in get_cpp_rule_generator().handled_extensions():
                 cpp_compiler = options.cpp_compiler
-                object_files.append(base + ".o")
+                object_files.append(base)
+            elif ext in get_as_rule_generator().handled_extensions():
+                as_compiler = options.as_compiler
+                object_files.append(base)
+
 
         with open("Makefile", "w") as output_file:
             # variables
@@ -45,6 +55,12 @@ class MakeGen:
                 output_file.write("CXXFLAGS=%(CXXFLAGS)s %(FLAGS)s\n"
                                   % {"FLAGS": compiler_flags,
                                      "CXXFLAGS": options.cxxflags})
+            
+            if as_compiler:
+                output_file.write("AS=%s\n" % (as_compiler))
+                output_file.write("ASFLAGS=%(ASFLAGS)s\n"
+                                  % { "ASFLAGS": options.asflags})
+
             if object_files:
                 output_file.write("OBJS=%s\n" % (' '.join(object_files)))
                 output_file.write("LDFLAGS=%(LDFLAGS)s %(FLAGS)s\n"
@@ -69,7 +85,7 @@ class MakeGen:
 
             # object files
             for f in options.sources:
-                self.__generate_rule(f, output_file)
+                self.__generate_rule(f, output_file, options.sources, output_dir=options.objdir)
 
             # clean
             output_file.write("clean:\n")
@@ -92,6 +108,7 @@ class MakeGen:
             flags.append("-D%s" % (d))
         for path in options.include_paths:
             flags.append("-I%s" % (path))
+
         return ' '.join(flags)
 
     def __split_extension(self, filename):
@@ -99,11 +116,11 @@ class MakeGen:
         ext = ext[1:] # remove leading '.'
         return (name, ext)
 
-    def __generate_rule(self, filename, output_file):
+    def __generate_rule(self, filename, output_file, sources, output_dir=""):
         name, ext = self.__split_extension(filename)
         if ext not in self.rule_generator:
             print("warning: don't know how to generate rule for \"%s\"" % (filename))
             return
         generator = self.rule_generator[ext]
-        rule = generator.generate_rule(filename)
+        rule = generator.generate_rule(filename, output_dir, sources)
         output_file.write(rule)
